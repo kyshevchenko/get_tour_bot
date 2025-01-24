@@ -1,23 +1,23 @@
 {
-  "name": "new_year_alerter_bot",
-  "version": "0.2.1",
+  "name": "get_tour_bot",
+  "version": "0.3.0",
   "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node bot.js",
+    "start": "node get_tour_bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kyshevchenko/new_year_alerter_bot.git"
+    "url": "git+https://github.com/kyshevchenko/get_tour_bot.git"
   },
   "author": "shevchenko_k",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/kyshevchenko/new_year_alerter_bot/issues"
+    "url": "https://github.com/kyshevchenko/get_tour_bot/issues"
   },
-  "homepage": "https://github.com/kyshevchenko/new_year_alerter_bot#readme",
+  "homepage": "https://github.com/kyshevchenko/get_tour_bot#readme",
   "dependencies": {
     "dotenv": "^16.4.5",
     "eslint": "^9.11.1",
