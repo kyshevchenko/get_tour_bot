@@ -184,6 +184,13 @@ bot.command("list", async (ctx) => {
   ctx.reply(message);
 });
 
+// Команда для помощи
+bot.command("help", async (ctx) => {
+  ctx.reply(
+    "Инструкции пока нет.\nВопросы и предложения вы можете отправить по почте gosupmonte@gmail.com."
+  );
+});
+
 // Запуск 1 сцены
 //   bot.hears("Подать аварийную заявку", (ctx) => {
 //     ctx.session = {}; // Очищаем состояние сессии
