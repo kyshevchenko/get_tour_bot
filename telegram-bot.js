@@ -1,14 +1,14 @@
 import pkg from "telegraf";
 import dotenv from "dotenv";
 
-import { getRequest, postRequest, deleteRequest } from "./api/config.js";
+import { getRequest, postRequest, deleteRequest } from "./src/api/config.js";
 
 dotenv.config();
 
 const { Telegraf, Markup, session, Scenes } = pkg;
 const { Stage, WizardScene } = Scenes;
 
-const bot = new Telegraf("7556362276:AAFuXYV4xwiFjgMC0kMWch7HXVl4boFe3Ng");
+const bot = new Telegraf(process.env.BOT_TOKEN);
 const serviceChat = process.env.SERVICE_CHAT_ID; // TODO Использовать для отладки и уведомлений
 
 // bot.telegram.sendMessage(serviceChat, "Бот начал работать!");
