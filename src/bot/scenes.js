@@ -1,33 +1,40 @@
 import pkg from "telegraf";
 const { Scenes } = pkg;
 const { Stage, WizardScene } = Scenes;
-import { postRequest, deleteRequest } from "../api/config.js";
+import { getRequest, postRequest, deleteRequest } from "../api/config.js";
+import { deleteBotPrevMsg, getResponseMessage } from "../utils.js";
+
+import dotenv from "dotenv";
+dotenv.config();
 
 const serviceChat = process.env.SERVICE_CHAT_ID;
 
 // Шаг 1 - для выбора подписки из готового списка
 const oneStepChooseSubgroup = async (ctx) => {
   try {
+    await ctx.deleteMessage().catch(() => {});
+
     const messageText = ctx.message?.text;
     if (!messageText) return;
 
     const { id } = ctx.message.from;
     const { mainKeyboard, subsKeyboards, groupNames, subNames, subIds } =
       ctx.session.data;
+    ctx.wizard.state.id = id;
     ctx.wizard.state.subIds = subIds;
     ctx.wizard.state.groupNames = groupNames;
     ctx.wizard.state.subNames = subNames;
     ctx.wizard.state.subsKeyboards = subsKeyboards;
-    ctx.wizard.state.id = id;
+    ctx.wizard.state.prevBotMsg = new Set();
 
-    //   const reply = для удаления сообщений
-    await ctx.reply("Выберите подписку:", {
+    const reply = await ctx.reply("Выберите раздел:", {
       reply_markup: {
         keyboard: mainKeyboard,
         resize_keyboard: true,
         one_time_keyboard: true,
       },
     });
+    ctx.wizard.state.prevBotMsg.add(reply.message_id);
 
     if (messageText === "Назад") return;
 
@@ -47,30 +54,54 @@ const oneStepChooseSubgroup = async (ctx) => {
 // Шаг 2 - для выбора подписки из готового списка
 const twoStepChooseSubscription = async (ctx) => {
   try {
+    await ctx.deleteMessage().catch(() => {});
+    deleteBotPrevMsg(ctx, ctx.wizard.state);
+
     const messageText = ctx.message?.text;
     if (!messageText) return;
 
     const { groupNames, subsKeyboards } = ctx.wizard.state;
 
-    if (messageText === "Отмена") {
+    if (messageText === "Отмена" || messageText === "/start") {
       return await ctx.scene.leave();
+    }
+
+    const chooseSubBtns = [
+      ["Мои подписки", "Отписаться от всех уведомлений"],
+      ["Назад"],
+    ];
+
+    if (messageText === "Настройки бота") {
+      const reply = await ctx.reply("Выберите подписку:", {
+        reply_markup: {
+          keyboard: chooseSubBtns,
+          resize_keyboard: true,
+          
+        },
+      });
+      ctx.wizard.state.prevBotMsg.add(reply.message_id);
+
+      return ctx.wizard.next();
     }
 
     if (groupNames.includes(messageText)) {
       const choosenGroup = messageText;
 
-      const reply = await ctx.reply("Выберите действие:", {
-        // TODO вынести в константы
+      const reply = await ctx.reply("Выберите направление:", {
         reply_markup: {
           keyboard: subsKeyboards[choosenGroup],
           resize_keyboard: true,
           one_time_keyboard: true,
         },
       });
+      ctx.wizard.state.prevBotMsg.add(reply.message_id);
+
       return ctx.wizard.next();
     }
 
-    return;
+    if (messageText) return;
+
+    return await ctx.scene.leave();
   } catch (error) {
     console.log(
       `Ошибка при обработке второй сцены у ${ctx.wizard.state.id}: `,
@@ -86,16 +117,48 @@ const twoStepChooseSubscription = async (ctx) => {
 // Шаг 3 - для подтверждения или удаления подписки
 const threeStepChooseOptions = async (ctx) => {
   try {
+    await ctx.deleteMessage().catch(() => {});
+    deleteBotPrevMsg(ctx, ctx.wizard.state);
+
     const messageText = ctx.message?.text;
+    const { id } = ctx.wizard.state;
     if (!messageText) return;
 
-    if (messageText === "Отмена") {
+    if (messageText === "Отмена" || messageText === "/start") {
       return ctx.scene.leave();
     }
 
     if (messageText === "Назад") {
       await ctx.wizard.selectStep(1);
       return oneStepChooseSubgroup(ctx);
+    }
+
+    if (messageText === "Мои подписки") {
+      if (!id) return ctx.scene.leave();
+
+      const activeSubsResponse = await getRequest(
+        `http://localhost:4000/chat-subscriptions/my/${id}`
+      );
+
+      const message = getResponseMessage(activeSubsResponse);
+      await ctx.reply(message);
+      return ctx.scene.leave();
+    }
+
+    if (messageText === "Отписаться от всех уведомлений") {
+      if (!id) return ctx.scene.leave();
+
+      const unsubscribeAllResponse = await deleteRequest(
+        `http://localhost:4000/chat-subscriptions/deleteall`,
+        {
+          telegramId: id,
+        }
+      );
+
+      const message = getResponseMessage(unsubscribeAllResponse);
+      await ctx.reply(message);
+
+      return ctx.scene.leave();
     }
 
     if (ctx.wizard.state.subNames.includes(messageText)) {
@@ -110,10 +173,14 @@ const threeStepChooseOptions = async (ctx) => {
           one_time_keyboard: true,
         },
       });
+      ctx.wizard.state.prevBotMsg.add(reply.message_id);
+
       return ctx.wizard.next();
     }
 
-    return;
+    if (messageText) return;
+
+    return await ctx.scene.leave();
   } catch (error) {
     console.log(
       `Ошибка при обработке третьей сцены у ${ctx.wizard.state.id}: `,
@@ -129,6 +196,9 @@ const threeStepChooseOptions = async (ctx) => {
 // Шаг 4 - для подтверждения или удаления подписки
 const fourStepFinish = async (ctx) => {
   try {
+    await ctx.deleteMessage().catch(() => {});
+    deleteBotPrevMsg(ctx, ctx.wizard.state);
+
     const messageText = ctx.message?.text;
     if (!messageText) return;
 
@@ -141,8 +211,7 @@ const fourStepFinish = async (ctx) => {
     const subName = ctx.wizard.state.choosenSub;
     const subscriptionId = ctx.wizard.state.subIds[subName];
 
-    if (messageText === "Отмена") {
-      ctx.wizard.state = {};
+    if (messageText === "Отмена" || messageText === "/start") {
       return ctx.scene.leave();
     }
 
@@ -152,7 +221,7 @@ const fourStepFinish = async (ctx) => {
     }
 
     if (messageText === "Подписаться") {
-      const createSubResult = await postRequest(
+      const createSubResponse = await postRequest(
         "http://localhost:4000/chat-subscriptions/new",
         {
           telegramTag,
@@ -164,13 +233,13 @@ const fourStepFinish = async (ctx) => {
         }
       );
 
-      const message = createSubResult.message || createSubResult.error;
-      ctx.reply(message);
+      const message = getResponseMessage(createSubResponse);
+      await ctx.reply(message);
       return ctx.scene.leave();
     }
 
     if (messageText === "Отменить текущую подписку") {
-      const deleteSub = await deleteRequest(
+      const deleteSubResponse = await deleteRequest(
         `http://localhost:4000/chat-subscriptions/delete`,
         {
           telegramId,
@@ -178,12 +247,14 @@ const fourStepFinish = async (ctx) => {
         }
       );
 
-      const message = deleteSub.message || deleteSub.error || "";
-      ctx.reply(message);
+      const message = getResponseMessage(deleteSubResponse);
+      await ctx.reply(message);
       return ctx.scene.leave();
     }
 
-    return;
+    if (messageText) return;
+
+    return await ctx.scene.leave();
   } catch (error) {
     console.log(
       `Ошибка при обработке четвертой сцены у ${ctx.wizard.state.id}: `,

@@ -6,6 +6,8 @@ const HTTP_METHOD = {
   DELETE: "delete",
 };
 
+const somethingWrongMsg = "Что-то пошло не так...";
+
 export const getRequest = async (url) => {
   try {
     const response = await fetch(url);
@@ -14,7 +16,7 @@ export const getRequest = async (url) => {
     return data;
   } catch (error) {
     console.error("Error in getRequest:", error);
-    return {};
+    return { error: somethingWrongMsg };
   }
 };
 
@@ -33,7 +35,7 @@ export const postRequest = async (url, payload) => {
     return data;
   } catch (error) {
     console.error("Error in postRequest:", error);
-    return { error: "Что-то пошло не так..." };
+    return { error: somethingWrongMsg };
   }
 };
 
@@ -53,7 +55,7 @@ export const patchRequest = async (url, payload) => {
     return text ? JSON.parse(text) : {};
   } catch (error) {
     console.error("Error in patchRequest:", error);
-    return {};
+    return { error: somethingWrongMsg };
   }
 };
 
@@ -73,6 +75,6 @@ export const deleteRequest = async (url, payload) => {
     return text ? JSON.parse(text) : {};
   } catch (error) {
     console.error("Error in deleteRequest:", error);
-    return { error: "Что-то пошло не так..." };
+    return { error: somethingWrongMsg };
   }
 };
