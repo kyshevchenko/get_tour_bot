@@ -18,7 +18,7 @@ const apiHash = process.env.API_TELEGRAM_HASH;
 const stringSession = new StringSession(process.env.SESSION_ID);
 const client = new TelegramClient(stringSession, apiId, apiHash, {
   connectionRetries: 15,
-  connectionTimeout: 60000,
+  connectionTimeout: 10000,
 });
 
 const serviceChat = process.env.SERVICE_CHAT_ID;
@@ -74,8 +74,8 @@ const interceptor = async (bot) => {
 
       state.messageStorage.add(messageId);
       const recipients = setRecipients(subs, messageFromChannel, state);
-      console.log("recipients -->", recipients);
-      console.log("messageFromChannel -->", messageFromChannel);
+      // console.log("recipients -->", recipients);
+      // console.log("messageFromChannel -->", messageFromChannel);
 
       await sendMessages(bot, client, recipients, message, serviceChat, state);
     } catch (error) {

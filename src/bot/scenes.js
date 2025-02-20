@@ -17,15 +17,9 @@ const oneStepChooseSubgroup = async (ctx) => {
     const messageText = ctx.message?.text;
     if (!messageText) return;
 
-    const { id } = ctx.message.from;
-    const { mainKeyboard, subsKeyboards, groupNames, subNames, subIds } =
-      ctx.session.data;
-    ctx.wizard.state.id = id;
-    ctx.wizard.state.subIds = subIds;
-    ctx.wizard.state.groupNames = groupNames;
-    ctx.wizard.state.subNames = subNames;
-    ctx.wizard.state.subsKeyboards = subsKeyboards;
+    ctx.wizard.state.id = ctx.message.from.id;
     ctx.wizard.state.prevBotMsg = new Set();
+    const { mainKeyboard } = ctx.wizard.state;
 
     const reply = await ctx.reply("Выберите раздел:", {
       reply_markup: {
@@ -76,7 +70,6 @@ const twoStepChooseSubscription = async (ctx) => {
         reply_markup: {
           keyboard: chooseSubBtns,
           resize_keyboard: true,
-          
         },
       });
       ctx.wizard.state.prevBotMsg.add(reply.message_id);

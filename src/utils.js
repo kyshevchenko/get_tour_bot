@@ -1,5 +1,11 @@
 import { Api } from "telegram";
 import { deleteRequest, getRequest } from "./api/config.js";
+import {
+  repeateSendingText,
+  secondSendCompletedText,
+  secondSendErrorText,
+  sendErrorText,
+} from "./constants.js";
 import path from "path";
 import fs from "fs";
 
@@ -96,7 +102,7 @@ export const sendIntervalReport = async (bot, client, id, state, interval) => {
 
       state.messageStorage.clear();
     } catch (error) {
-      console.log("error: ", error);
+      console.error("error: ", error);
     }
   }, interval);
 };
@@ -111,13 +117,11 @@ export const sendMessages = async (
   state
 ) => {
   // const deelayBeetweenMessages = 30;
-  const deelayBeetweenMessages = 1;
 
   const photo = message.media?.photo;
   const video = message.media?.video;
   const gif = message.media?.animation;
   const hasMedia = Boolean(photo || video || gif);
-  console.log("Медиа присутствует:", hasMedia);
 
   const messageFromChannel = message.message;
   const channelEntity = await client.getEntity(message.peerId);
@@ -145,10 +149,12 @@ export const sendMessages = async (
       );
     }
 
-    console.log("Фото было загружено --->", buffer.length, "байт");
   } catch (error) {
     console.log("Произошла ошибка при загрузке фото: ", error);
   }
+
+  /** Логирование скорости отправки **/
+  const speedArray = [];
 
   for (const user of recipients) {
     try {
@@ -162,11 +168,14 @@ export const sendMessages = async (
           )
         : await bot.telegram.sendMessage(user, caption);
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, deelayBeetweenMessages)
-      );
+      // await new Promise((resolve) =>
+      //   setTimeout(resolve, deelayBeetweenMessages)
+      // );
+
+      /** Логирование скорости отправки **/
       const sec = new Date().getSeconds();
-      console.log(`Отправлено: ${user} ->`, sec);
+      speedArray.push(sec);
+      /** Логирование скорости отправки **/
     } catch (error) {
       const { response } = error;
 
@@ -174,47 +183,95 @@ export const sendMessages = async (
       if (response && response.error_code === 429) {
         const waitTime = error.response.parameters.retry_after * 1100;
         client.sendMessage(serviceChat, {
-          message: `Ошибка 429 при отправке пользователю ${user}.\n${error}.\nКанал: ${channelName}\nСообщение: ${messageFromChannel.slice(
+          message: `429 ${sendErrorText}${user}.\n${error}.\nКанал: ${channelName}\nСообщение: ${messageFromChannel.slice(
             0,
             50
-          )}...\nЖдем перед повтором: ${waitTime}`,
+          )}...${repeateSendingText} через: ${waitTime} мс`,
         });
+
         console.log(`Лимит Telegram превышен! Ждём ${waitTime} мс...`);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
         try {
-          client.sendMessage(serviceChat, {
-            message: `Осуществляется повторная отправка сообщения пользователю: ${user}.`,
-          });
           await bot.telegram.sendMessage(user, caption);
+
+          client.sendMessage(serviceChat, {
+            message: `${secondSendCompletedText}${user}.`,
+          });
         } catch (error) {
           client.sendMessage(serviceChat, {
-            message: `Ошибка при повторной отправке сообщения пользователю: ${user}.\n${error}`,
+            message: `${secondSendErrorText}${user}.\n${error}`,
           });
-          console.error(`Ошибка при повторной отправке ${user}:`, error);
+
+          console.error(`${secondSendErrorText}${user}`, error);
         } // ошибка при заблокированном боте
       } else if (
         response &&
         (response.error_code === 403 || response.error_code === 404)
       ) {
         state.blockedUsers.add(user);
+
         await deleteRequest(
           `http://localhost:4000/chat-subscriptions/deleteall`,
           {
             telegramId: user,
           }
         );
-        // другие ошибки
+        // другие ошибки, в т. ч. ошибки сети: EADDRNOTAVAIL, ETIMEDOUT, EHOSTUNREACH, EPIPE, socket hang up, network timeout at
       } else {
-        console.error(`Ошибка при отправке пользователю ${user}:`, error);
         await client.sendMessage(serviceChat, {
-          message: `Ошибка при отправке пользователю ${user}.\n${error}.\nКанал: ${channelName}\nСообщение: ${messageFromChannel.slice(
+          message: `${sendErrorText}${user}.\n${error}.\nКанал: ${channelName}\nСообщение: ${messageFromChannel.slice(
             0,
             50
-          )}...`,
+          )}...${repeateSendingText}`,
         });
+
+        console.error(`${sendErrorText}${user}`, error);
+        try {
+          await bot.telegram.sendMessage(user, caption);
+
+          client.sendMessage(serviceChat, {
+            message: `${secondSendCompletedText}${user}.`,
+          });
+          console.log(`${secondSendCompletedText}${user}.`);
+        } catch (error) {
+          client.sendMessage(serviceChat, {
+            message: `${secondSendErrorText}${user}.\n${error}`,
+          });
+
+          console.error(`${secondSendErrorText}${user}`, error);
+        }
       }
     }
   }
+
+  /** Логирование скорости отправки **/
+  function calculateAverageSpeed(speedArray) {
+    if (speedArray.length < 2) return speedArray.length; // Если мало данных — просто возвращаем их количество
+
+    let totalSeconds = 0;
+
+    for (let i = 1; i < speedArray.length; i++) {
+      if (speedArray[i] >= speedArray[i - 1]) {
+        // Обычное увеличение времени (например, 8 → 9 → 12)
+        totalSeconds += speedArray[i] - speedArray[i - 1];
+      } else {
+        // Переход через границу минуты (например, 59 → 2)
+        totalSeconds += 60 - speedArray[i - 1] + speedArray[i];
+      }
+    }
+
+    const totalMessages = speedArray.length;
+    return totalSeconds > 0
+      ? (totalMessages / totalSeconds).toFixed(0)
+      : totalMessages;
+  }
+  const averageSpeed = calculateAverageSpeed(speedArray);
+  const Reportmessage = 
+`Получатели: ${recipients.length}. Скорость: ${averageSpeed} сообщений/сек.
+Сообщение: ${caption.slice(0, 40)}`;
+
+  client.sendMessage(serviceChat, { message: Reportmessage });
+  /** Логирование скорости отправки **/
 };
 
 export const setRecipients = (subs, messageFromChannel, state) => {
@@ -251,25 +308,3 @@ export const deleteBotPrevMsg = async (ctx, state) => {
   }
   state.prevBotMsg.clear();
 };
-
-// export const daysDeclension = (number) => { Пока не используется
-//   if (number > 10 && [11, 12, 13, 14].includes(number % 100)) return "дней";
-//   const lastNum = number % 10;
-//   if (lastNum === 1) return "день";
-//   if ([2, 3, 4].includes(lastNum)) return "дня";
-//   if ([5, 6, 7, 8, 9, 0].includes(lastNum)) return "дней";
-// };
-
-// export const removeMessages = async (ctx, messages) => { Пока не используется
-//   if (!messages?.length) return;
-//   console.log("messages -->", messages);
-//   for (const messageId of messages) {
-//     try {
-//       console.log("Удаляем сообщение -->", messageId);
-
-//       ctx.deleteMessage(messageId);
-//     } catch (error) {
-//       console.error("Ошибка при удалении сообщения:", error);
-//     }
-//   }
-// };

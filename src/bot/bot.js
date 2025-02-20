@@ -21,9 +21,7 @@ const startBot = async () => {
 
   bot.start((ctx) => {
     ctx.scene.leave();
-
-    ctx.session.data = subsAndKeyboard;
-    ctx.scene.enter("subs-scene");
+    ctx.scene.enter("subs-scene", { ...subsAndKeyboard });
   });
 
   // Подписаться на всё // TODO для тестирования, удалить
@@ -56,6 +54,17 @@ const startBot = async () => {
     ctx.reply(
       errors.length ? errors[0] : "Вы успешно подписались сразу на ВСЁ."
     );
+  });
+
+  bot.on("text", async (ctx) => {
+    const userMessage = ctx.message.text;
+    if (userMessage !== "Отмена" || userMessage !== "Назад") return;
+    try {
+      const messageId = ctx.message.message_id;
+      await ctx.deleteMessage(messageId);
+    } catch (error) {
+      console.error("Ошибка при удалении сообщения:", error);
+    }
   });
 
   bot.launch();
