@@ -21,7 +21,7 @@ const startBot = async () => {
 
   bot.start((ctx) => {
     ctx.scene.leave();
-    ctx.scene.enter("subs-scene", { ...subsAndKeyboard });
+    ctx.scene.enter("subs-scene", subsAndKeyboard);
   });
 
   // Подписаться на всё // TODO для тестирования, удалить

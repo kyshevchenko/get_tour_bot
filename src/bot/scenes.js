@@ -12,14 +12,13 @@ const serviceChat = process.env.SERVICE_CHAT_ID;
 // Шаг 1 - для выбора подписки из готового списка
 const oneStepChooseSubgroup = async (ctx) => {
   try {
-    await ctx.deleteMessage().catch(() => {});
-
     const messageText = ctx.message?.text;
     if (!messageText) return;
 
     ctx.wizard.state.id = ctx.message.from.id;
     ctx.wizard.state.prevBotMsg = new Set();
     const { mainKeyboard } = ctx.wizard.state;
+    ctx.wizard.state.prevBotMsg.add(ctx.message.message_id);
 
     const reply = await ctx.reply("Выберите раздел:", {
       reply_markup: {
