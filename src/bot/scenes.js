@@ -60,8 +60,7 @@ const twoStepChooseSubscription = async (ctx) => {
     }
 
     const chooseSubBtns = [
-      ["Показать мои подписки"],
-      ["Отписаться от всех уведомлений"],
+      ["Мои подписки", "Отписаться от всех уведомлений"],
       ["Назад"],
     ];
 
@@ -126,7 +125,7 @@ const threeStepChooseOptions = async (ctx) => {
       return oneStepChooseSubgroup(ctx);
     }
 
-    if (messageText === "Показать мои подписки") {
+    if (messageText === "Мои подписки") {
       if (!id) return ctx.scene.leave();
 
       const activeSubsResponse = await getRequest(
