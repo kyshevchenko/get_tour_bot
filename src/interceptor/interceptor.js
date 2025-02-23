@@ -22,10 +22,10 @@ const client = new TelegramClient(stringSession, apiId, apiHash, {
 });
 
 const serviceChat = process.env.SERVICE_CHAT_ID;
-let subs = {}; // хранилище подписок
 const state = {
   blockedUsers: new Set(),
   messageStorage: new Set(),
+  subs: {},
   workDays: 0,
 };
 
@@ -49,8 +49,7 @@ const interceptor = async (bot) => {
     message: "Интерсептор начал работать!",
   });
 
-  await updateSubscribers(subs, state); // раз в час обновляем текущие подписки и обнуляем blockedUsers
-
+  await updateSubscribers(state); // раз в час обновляем текущие подписки и обнуляем blockedUsers
   sendIntervalReport(bot, client, serviceChat, state, 86400000);
 
   client.addEventHandler(async (update) => {
@@ -66,16 +65,14 @@ const interceptor = async (bot) => {
         messageId &&
         channelId &&
         !state.messageStorage.has(messageId) &&
-        isMessageInSubscriptions(messageFromChannel, subs);
+        isMessageInSubscriptions(messageFromChannel, state.subs);
 
       checkInterseptorStatus(client, messageFromChannel, serviceChat);
 
       if (!isRelevantMessage) return;
 
       state.messageStorage.add(messageId);
-      const recipients = setRecipients(subs, messageFromChannel, state);
-      // console.log("recipients -->", recipients);
-      // console.log("messageFromChannel -->", messageFromChannel);
+      const recipients = setRecipients(messageFromChannel, state);
 
       await sendMessages(bot, client, recipients, message, serviceChat, state);
     } catch (error) {

@@ -26,11 +26,15 @@ const getSubscribers = async (subs) => {
   }
 };
 
-export const updateSubscribers = async (subs, state) => {
-  await getSubscribers(subs);
+export const updateSubscribers = async (state) => {
+  await getSubscribers(state.subs);
 
   setInterval(async () => {
-    await getSubscribers(subs);
+    for (const key in state.subs) {
+      delete state.subs[key];
+    }
+    await getSubscribers(state.subs);
+
     state.blockedUsers.clear();
   }, 3600000); // Раз в час
 };
@@ -93,12 +97,21 @@ export const getSubsListAndBotKeyboard = async () => {
 
 export const sendIntervalReport = async (bot, client, id, state, interval) => {
   setInterval(() => {
-    try {
-      state.workDays += 1;
-      const message = `Дней беспрерывной работы: ${state.workDays}`;
+    const subscribers = new Set();
 
-      bot.telegram.sendMessage(id, message);
-      client.sendMessage(id, { message });
+    try {
+      for (const key in state.subs) {
+        state.subs[key].chats.forEach((e) => subscribers.add(e));
+      }
+
+      state.workDays += 1;
+
+      const workDaysMsg = `Дней беспрерывной работы: ${state.workDays}.`;
+      const botMsg = `${workDaysMsg}\nКоличество подписчиков: ${subscribers.size}.`;
+      const interceptorMsg = `Отловлено сообщений сегодня: ${state.messageStorage.size}.`;
+
+      bot.telegram.sendMessage(id, botMsg);
+      client.sendMessage(id, { message: interceptorMsg });
 
       state.messageStorage.clear();
     } catch (error) {
@@ -148,7 +161,6 @@ export const sendMessages = async (
         {}
       );
     }
-
   } catch (error) {
     console.log("Произошла ошибка при загрузке фото: ", error);
   }
@@ -266,21 +278,20 @@ export const sendMessages = async (
       : totalMessages;
   }
   const averageSpeed = calculateAverageSpeed(speedArray);
-  const Reportmessage = 
-`Получатели: ${recipients.length}. Скорость: ${averageSpeed} сообщений/сек.
+  const StatisticMsg = `Получатели: ${recipients.length}.
+  Скорость: ${averageSpeed} сообщений/сек.
 Сообщение: ${caption.slice(0, 40)}`;
 
-  client.sendMessage(serviceChat, { message: Reportmessage });
-  /** Логирование скорости отправки **/
+  client.sendMessage(serviceChat, { message: StatisticMsg });
 };
 
-export const setRecipients = (subs, messageFromChannel, state) => {
+export const setRecipients = (messageFromChannel, state) => {
   let recipients = new Set();
 
-  for (const key in subs) {
-    const keywords = subs[key].keywords;
+  for (const key in state.subs) {
+    const keywords = state.subs[key].keywords;
     if (hasKeyword(keywords, messageFromChannel)) {
-      subs[key].chats.forEach(
+      state.subs[key].chats.forEach(
         (chatId) => !state.blockedUsers.has(chatId) && recipients.add(chatId)
       );
     }
