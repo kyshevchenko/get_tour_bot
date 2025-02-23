@@ -108,7 +108,7 @@ export const sendIntervalReport = async (bot, client, id, state, interval) => {
 
       const workDaysMsg = `Дней беспрерывной работы: ${state.workDays}.`;
       const botMsg = `${workDaysMsg}\nКоличество подписчиков: ${subscribers.size}.`;
-      const interceptorMsg = `Отловлено сообщений сегодня: ${state.messageStorage.size}.`;
+      const interceptorMsg = `Перехвачено сообщений сегодня: ${state.messageStorage.size}.`;
 
       bot.telegram.sendMessage(id, botMsg);
       client.sendMessage(id, { message: interceptorMsg });
@@ -279,7 +279,7 @@ export const sendMessages = async (
   }
   const averageSpeed = calculateAverageSpeed(speedArray);
   const StatisticMsg = `Получатели: ${recipients.length}.
-  Скорость: ${averageSpeed} сообщений/сек.
+Скорость: ${averageSpeed} сообщений/сек.
 Сообщение: ${caption.slice(0, 40)}`;
 
   client.sendMessage(serviceChat, { message: StatisticMsg });
