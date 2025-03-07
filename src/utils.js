@@ -106,12 +106,12 @@ export const sendIntervalReport = async (bot, client, id, state, interval) => {
 
       state.workDays += 1;
 
+      const subscribersCount = `Количество подписчиков: ${subscribers.size}.`;
+      const msgsCount = `Перехвачено сообщений сегодня: ${state.messageStorage.size}.`;
       const workDaysMsg = `Дней беспрерывной работы: ${state.workDays}.`;
-      const botMsg = `${workDaysMsg}\nКоличество подписчиков: ${subscribers.size}.`;
-      const interceptorMsg = `Перехвачено сообщений сегодня: ${state.messageStorage.size}.`;
+      const botMsg = `${subscribersCount}\n${msgsCount}\n${workDaysMsg}\n`;
 
       bot.telegram.sendMessage(id, botMsg);
-      client.sendMessage(id, { message: interceptorMsg });
 
       state.messageStorage.clear();
     } catch (error) {
@@ -129,8 +129,6 @@ export const sendMessages = async (
   serviceChat,
   state
 ) => {
-  // const deelayBeetweenMessages = 30;
-
   const photo = message.media?.photo;
   const video = message.media?.video;
   const gif = message.media?.animation;
@@ -166,7 +164,7 @@ export const sendMessages = async (
   }
 
   /** Логирование скорости отправки **/
-  const speedArray = [];
+  // const speedArray = [];
 
   for (const user of recipients) {
     try {
@@ -180,13 +178,9 @@ export const sendMessages = async (
           )
         : await bot.telegram.sendMessage(user, caption);
 
-      // await new Promise((resolve) =>
-      //   setTimeout(resolve, deelayBeetweenMessages)
-      // );
-
       /** Логирование скорости отправки **/
-      const sec = new Date().getSeconds();
-      speedArray.push(sec);
+      // const sec = new Date().getSeconds();
+      // speedArray.push(sec);
       /** Логирование скорости отправки **/
     } catch (error) {
       const { response } = error;
@@ -256,33 +250,33 @@ export const sendMessages = async (
     }
   }
 
-  /** Логирование скорости отправки **/
-  function calculateAverageSpeed(speedArray) {
-    if (speedArray.length < 2) return speedArray.length; // Если мало данных — просто возвращаем их количество
+  //   /** Логирование скорости отправки **/
+  //   function calculateAverageSpeed(speedArray) {
+  //     if (speedArray.length < 2) return speedArray.length; // Если мало данных — просто возвращаем их количество
 
-    let totalSeconds = 0;
+  //     let totalSeconds = 0;
 
-    for (let i = 1; i < speedArray.length; i++) {
-      if (speedArray[i] >= speedArray[i - 1]) {
-        // Обычное увеличение времени (например, 8 → 9 → 12)
-        totalSeconds += speedArray[i] - speedArray[i - 1];
-      } else {
-        // Переход через границу минуты (например, 59 → 2)
-        totalSeconds += 60 - speedArray[i - 1] + speedArray[i];
-      }
-    }
+  //     for (let i = 1; i < speedArray.length; i++) {
+  //       if (speedArray[i] >= speedArray[i - 1]) {
+  //         // Обычное увеличение времени (например, 8 → 9 → 12)
+  //         totalSeconds += speedArray[i] - speedArray[i - 1];
+  //       } else {
+  //         // Переход через границу минуты (например, 59 → 2)
+  //         totalSeconds += 60 - speedArray[i - 1] + speedArray[i];
+  //       }
+  //     }
 
-    const totalMessages = speedArray.length;
-    return totalSeconds > 0
-      ? (totalMessages / totalSeconds).toFixed(0)
-      : totalMessages;
-  }
-  const averageSpeed = calculateAverageSpeed(speedArray);
-  const StatisticMsg = `Получатели: ${recipients.length}.
-Скорость: ${averageSpeed} сообщений/сек.
-Сообщение: ${caption.slice(0, 40)}`;
+  //     const totalMessages = speedArray.length;
+  //     return totalSeconds > 0
+  //       ? (totalMessages / totalSeconds).toFixed(0)
+  //       : totalMessages;
+  //   }
+  //   const averageSpeed = calculateAverageSpeed(speedArray);
+  //   const StatisticMsg = `Получатели: ${recipients.length}.
+  // Скорость: ${averageSpeed} сообщений/сек.
+  // Сообщение: ${caption.slice(0, 40)}`;
 
-  client.sendMessage(serviceChat, { message: StatisticMsg });
+  //   client.sendMessage(serviceChat, { message: StatisticMsg });
 };
 
 export const setRecipients = (messageFromChannel, state) => {

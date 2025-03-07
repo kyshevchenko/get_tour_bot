@@ -49,7 +49,7 @@ const interceptor = async (bot) => {
     message: "Интерсептор начал работать!",
   });
 
-  await updateSubscribers(state); // раз в час обновляем текущие подписки и обнуляем blockedUsers
+  await updateSubscribers(state);
   sendIntervalReport(bot, client, serviceChat, state, 86400000);
 
   client.addEventHandler(async (update) => {
