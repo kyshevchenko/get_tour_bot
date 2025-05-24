@@ -1,3 +1,5 @@
+import { somethingWentWrongMsg } from "../constants";
+
 const HTTP_METHOD = {
   GET: "get",
   POST: "post",
@@ -5,8 +7,6 @@ const HTTP_METHOD = {
   PATCH: "PATCH",
   DELETE: "delete",
 };
-
-const somethingWrongMsg = "Что-то пошло не так...";
 
 export const getRequest = async (url) => {
   try {
@@ -16,7 +16,7 @@ export const getRequest = async (url) => {
     return data;
   } catch (error) {
     console.error("Error in getRequest:", error);
-    return { error: somethingWrongMsg };
+    return { error: somethingWentWrongMsg };
   }
 };
 
@@ -35,7 +35,7 @@ export const postRequest = async (url, payload) => {
     return data;
   } catch (error) {
     console.error("Error in postRequest:", error);
-    return { error: somethingWrongMsg };
+    return { error: somethingWentWrongMsg };
   }
 };
 
@@ -55,7 +55,7 @@ export const patchRequest = async (url, payload) => {
     return text ? JSON.parse(text) : {};
   } catch (error) {
     console.error("Error in patchRequest:", error);
-    return { error: somethingWrongMsg };
+    return { error: somethingWentWrongMsg };
   }
 };
 
@@ -75,6 +75,6 @@ export const deleteRequest = async (url, payload) => {
     return text ? JSON.parse(text) : {};
   } catch (error) {
     console.error("Error in deleteRequest:", error);
-    return { error: somethingWrongMsg };
+    return { error: somethingWentWrongMsg };
   }
 };

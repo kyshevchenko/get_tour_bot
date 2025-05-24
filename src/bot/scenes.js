@@ -3,11 +3,14 @@ const { Scenes } = pkg;
 const { Stage, WizardScene } = Scenes;
 import { getRequest, postRequest, deleteRequest } from "../api/config.js";
 import { deleteBotPrevMsg, getResponseMessage } from "../utils.js";
+import { somethingWentWrongMsg } from "../constants.js";
 
 import dotenv from "dotenv";
 dotenv.config();
 
 const serviceChat = process.env.SERVICE_CHAT_ID;
+
+// TODO добавить таймаут завершение сцены
 
 // Шаг 1 - для выбора подписки из готового списка
 const oneStepChooseSubgroup = async (ctx) => {
@@ -33,7 +36,7 @@ const oneStepChooseSubgroup = async (ctx) => {
 
     return ctx.wizard.next();
   } catch (error) {
-    console.log(
+    console.error(
       `Ошибка при обработке первой сцены у ${ctx.wizard.state.id}: `,
       error
     );
@@ -41,6 +44,9 @@ const oneStepChooseSubgroup = async (ctx) => {
       serviceChat,
       `Ошибка при обработке первой сцены у ${ctx.wizard.state.id}: ${error}`
     );
+
+    await ctx.reply(somethingWentWrongMsg);
+    await ctx.scene.leave();
   }
 };
 
@@ -76,26 +82,22 @@ const twoStepChooseSubscription = async (ctx) => {
       return ctx.wizard.next();
     }
 
-    if (groupNames.includes(messageText)) {
-      const choosenGroup = messageText;
+    if (!groupNames.includes(messageText)) return;
 
-      const reply = await ctx.reply("Выберите направление:", {
-        reply_markup: {
-          keyboard: subsKeyboards[choosenGroup],
-          resize_keyboard: true,
-          one_time_keyboard: true,
-        },
-      });
-      ctx.wizard.state.prevBotMsg.add(reply.message_id);
+    const choosenGroup = messageText;
 
-      return ctx.wizard.next();
-    }
+    const reply = await ctx.reply("Выберите направление:", {
+      reply_markup: {
+        keyboard: subsKeyboards[choosenGroup],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    });
+    ctx.wizard.state.prevBotMsg.add(reply.message_id);
 
-    if (messageText) return;
-
-    return await ctx.scene.leave();
+    return ctx.wizard.next();
   } catch (error) {
-    console.log(
+    console.error(
       `Ошибка при обработке второй сцены у ${ctx.wizard.state.id}: `,
       error
     );
@@ -103,6 +105,9 @@ const twoStepChooseSubscription = async (ctx) => {
       serviceChat,
       `Ошибка при обработке второй сцены у ${ctx.wizard.state.id}: ${error}`
     );
+
+    await ctx.reply(somethingWentWrongMsg);
+    await ctx.scene.leave();
   }
 };
 
@@ -174,7 +179,7 @@ const threeStepChooseOptions = async (ctx) => {
 
     return await ctx.scene.leave();
   } catch (error) {
-    console.log(
+    console.error(
       `Ошибка при обработке третьей сцены у ${ctx.wizard.state.id}: `,
       error
     );
@@ -182,6 +187,9 @@ const threeStepChooseOptions = async (ctx) => {
       serviceChat,
       `Ошибка при обработке третьей сцены у ${ctx.wizard.state.id}: ${error}`
     );
+
+    await ctx.reply(somethingWentWrongMsg);
+    await ctx.scene.leave();
   }
 };
 
@@ -248,7 +256,7 @@ const fourStepFinish = async (ctx) => {
 
     return await ctx.scene.leave();
   } catch (error) {
-    console.log(
+    console.error(
       `Ошибка при обработке четвертой сцены у ${ctx.wizard.state.id}: `,
       error
     );
@@ -256,6 +264,9 @@ const fourStepFinish = async (ctx) => {
       serviceChat,
       `Ошибка при обработке четвертой сцены у ${ctx.wizard.state.id}: ${error}`
     );
+
+    await ctx.reply(somethingWentWrongMsg);
+    await ctx.scene.leave();
   }
 };
 

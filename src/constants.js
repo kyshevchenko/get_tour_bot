@@ -6,3 +6,6 @@ export const secondSendCompletedText =
   "Выполнена повторная отправка сообщения: ";
 
 export const sendErrorText = "Ошибка при отправке: ";
+
+export const somethingWentWrongMsg =
+  "Что-то пошло не так... Пожалуйста, попробуйте позже.";

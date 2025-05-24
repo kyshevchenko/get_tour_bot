@@ -2,6 +2,7 @@ import pkg from "telegraf";
 const { Telegraf, session } = pkg;
 import stage from "./scenes.js";
 import { getSubsListAndBotKeyboard } from "../utils.js";
+import { somethingWentWrongMsg } from "../constants.js";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -16,9 +17,14 @@ const startBot = async () => {
   bot.telegram.sendMessage(serviceChat, "Бот начал работать!");
   const subsAndKeyboard = await getSubsListAndBotKeyboard();
 
-  bot.start((ctx) => {
-    ctx.scene.leave();
-    ctx.scene.enter("subs-scene", subsAndKeyboard);
+  bot.start(async (ctx) => {
+    try {
+      await ctx.scene.leave();
+      await ctx.scene.enter("subs-scene", subsAndKeyboard);
+    } catch (error) {
+      console.error("Ошибка при обработке команды /start:", error);
+      ctx.reply(somethingWentWrongMsg);
+    }
   });
 
   bot.on("text", async (ctx) => {
@@ -28,7 +34,7 @@ const startBot = async () => {
       const messageId = ctx.message.message_id;
       await ctx.deleteMessage(messageId);
     } catch (error) {
-      console.error("Ошибка при удалении сообщения:", error);
+      console.error("Ошибка при удалении сообщения в bot.on('text'):", error);
     }
   });
 
