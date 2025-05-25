@@ -129,11 +129,30 @@ export const sendMessages = async (
   recipients,
   message,
   serviceChat,
-  state
+  state,
+  description
 ) => {
-  const photo = message.media?.photo;
-  const video = message.media?.video;
-  const gif = message.media?.animation;
+  if (typeof message === "string") {
+    for (const user of recipients) {
+      const draftCaption = `@${description}: ${message}`;
+      const caption =
+        draftCaption.length > 1000
+          ? `${draftCaption.slice(0, 997)}...`
+          : draftCaption;
+
+      try {
+        await bot.telegram.sendMessage(user, caption);
+      } catch (error) {
+        console.error("error: ", error);
+      }
+    }
+
+    return;
+  }
+
+  const photo = message?.media?.photo;
+  const video = message?.media?.video;
+  const gif = message?.media?.animation;
   const hasMedia = Boolean(photo || video || gif);
 
   const messageFromChannel = message.message;

@@ -60,6 +60,7 @@ const interceptor = async (bot) => {
     try {
       const message = update?.message;
       const channelId = message.peerId?.channelId?.value;
+      const chatId = update?.chatId?.value;
       const messageFromChannel = message.message;
       const messageId = message.id;
 
@@ -72,14 +73,15 @@ const interceptor = async (bot) => {
       checkInterseptorStatus(client, messageFromChannel, serviceChat);
 
       // Блок для личного интерсептора
-      const isPrivateChnl = isPrivateChannel(channelId, state.privateData);
+      const senderId = channelId || chatId;
+      const isPrivate = isPrivateChannel(senderId, state.privateData);
+      const text = messageFromChannel || message;
 
-      if (isPrivateChnl && messageFromChannel) {
-        const { keywords, recipients } = state.privateData[channelId];
+      if (isPrivate && text) {
+        const { keywords, recipients, description } =
+          state.privateData[senderId];
         const isKeyword = keywords.some(
-          (word) =>
-            messageFromChannel &&
-            messageFromChannel.toLowerCase().includes(word)
+          (word) => text && text.toLowerCase().includes(word)
         );
 
         if (!isKeyword) return;
@@ -90,7 +92,8 @@ const interceptor = async (bot) => {
           recipients,
           message,
           serviceChat,
-          state
+          state,
+          description // Для указания имени/описания чата в сообщении
         );
       }
       // Блок для личного интерсептора
