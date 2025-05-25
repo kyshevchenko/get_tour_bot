@@ -4,6 +4,7 @@ import input from "input";
 import {
   checkInterseptorStatus,
   isMessageInSubscriptions,
+  isPrivateChannel,
   sendIntervalReport,
   sendMessages,
   setRecipients,
@@ -26,6 +27,7 @@ const state = {
   blockedUsers: new Set(),
   messageStorage: new Set(),
   subs: {},
+  privateData: {},
   workDays: 0,
 };
 
@@ -43,7 +45,7 @@ const interceptor = async (bot) => {
 
   console.log("Авторизация прошла успешно!");
   // console.log("Сессия:");
-  // console.log(client.session.save());
+  // console.log(client.session.save()); // TODO use for copying session to env
 
   await client.sendMessage(serviceChat, {
     message: "Интерсептор начал работать!",
@@ -68,6 +70,30 @@ const interceptor = async (bot) => {
         isMessageInSubscriptions(messageFromChannel, state.subs);
 
       checkInterseptorStatus(client, messageFromChannel, serviceChat);
+
+      // Блок для личного интерсептора
+      const isPrivateChnl = isPrivateChannel(channelId, state.privateData);
+
+      if (isPrivateChnl && messageFromChannel) {
+        const { keywords, recipients } = state.privateData[channelId];
+        const isKeyword = keywords.some(
+          (word) =>
+            messageFromChannel &&
+            messageFromChannel.toLowerCase().includes(word)
+        );
+
+        if (!isKeyword) return;
+
+        return await sendMessages(
+          bot,
+          client,
+          recipients,
+          message,
+          serviceChat,
+          state
+        );
+      }
+      // Блок для личного интерсептора
 
       if (!isRelevantMessage) return;
 

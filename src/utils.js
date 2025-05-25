@@ -12,31 +12,30 @@ import fs from "fs";
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const defaultPhoto = fs.readFileSync(__dirname + "/images/defaultPhoto.png");
 
-const getSubscribers = async (subs) => {
+const getSubscribers = async (subs, privateData) => {
   try {
     const { subscriptions, message, error } = await getRequest(
       "http://localhost:4000/chat-subscriptions/all"
     );
+    Object.assign(subs, subscriptions);
 
-    for (const i in subscriptions) {
-      subs[i] = subscriptions[i];
-    }
+    const privateResponse = await getRequest("http://localhost:4000/private");
+    Object.assign(privateData, privateResponse);
   } catch (error) {
     console.error("error: ", error);
   }
 };
 
 export const updateSubscribers = async (state) => {
-  await getSubscribers(state.subs);
+  await getSubscribers(state.subs, state.privateData);
 
   setInterval(async () => {
-    for (const key in state.subs) {
-      delete state.subs[key];
-    }
-    await getSubscribers(state.subs);
-
+    Object.keys(state.subs).forEach((key) => delete state.subs[key]);
+    Object.keys(state.privateData).forEach((k) => delete state.privateData[k]);
     state.blockedUsers.clear();
-  }, 3600000); // Раз в час
+
+    await getSubscribers(state.subs, state.privateData);
+  }, 7200000); // Раз в 2 часа
 };
 
 const hasKeyword = (keywords, messageFromChannel) =>
@@ -53,6 +52,9 @@ export const isMessageInSubscriptions = (message, subs) => {
   }
   return keys.some((e) => message.toLowerCase().includes(e));
 };
+
+export const isPrivateChannel = (channelId, privateData) =>
+  privateData.hasOwnProperty(String(channelId));
 
 // Функция для разбивки массива по chunkSize штук
 function chunkArray(array, chunkSize) {

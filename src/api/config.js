@@ -1,4 +1,4 @@
-import { somethingWentWrongMsg } from "../constants";
+import { somethingWentWrongMsg } from "../constants.js";
 
 const HTTP_METHOD = {
   GET: "get",
