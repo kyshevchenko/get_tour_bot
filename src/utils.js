@@ -50,7 +50,11 @@ export const isMessageInSubscriptions = (message, subs) => {
   for (const key in subs) {
     keys.push(...subs[key].keywords.split(", "));
   }
-  return keys.some((e) => message.toLowerCase().includes(e));
+
+  const keyword = keys.find((e) => message.toLowerCase().includes(e));
+  keyword && console.log("keyword --->", keyword); // Логируем ключевое слово
+
+  return !!keyword;
 };
 
 export const isPrivateChannel = (channelId, privateData) =>
